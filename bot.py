@@ -1,14 +1,21 @@
+import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    filters,
+    ContextTypes,
+)
 
 # ================== CONFIG ==================
-BOT_TOKEN = "8622829038:AAFhGZy_xQAPTEHrw_4Cs_hTE_vcX2HqHgM"
-ADMIN_ID = 7997697892          # Your Telegram user ID
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 GROUP_LINK = "https://t.me/+NJLTREq5F6E4NWE0"
 REGISTER_LINK = "https://grindpoint.com.ng/register"
-
 # ============================================
 
 logging.basicConfig(
@@ -35,10 +42,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Join Telegram Group", url=GROUP_LINK)],
         [InlineKeyboardButton("📝 Create Free Account", url=REGISTER_LINK)],
-        [InlineKeyboardButton("🆘 I Need Help", callback_data="need_help")]
+        [InlineKeyboardButton("🆘 I Need Help", callback_data="need_help")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,13 +52,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     if query.data == "need_help":
-        # Reply to user
         await query.message.reply_text(
             "Okay, I’ve received your request ✅\n\n"
-            "A human support agent will get back to you shortly. Please describe your problem."
+            "A human support agent will get back to you shortly.\n"
+            "Please describe your problem."
         )
 
-        # Notify Admin
         user = query.from_user
         username = f"@{user.username}" if user.username else "No username"
         text = (
@@ -69,29 +74,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle any normal text message"""
     user = update.effective_user
-    message_text = update.message.text
+    message_text = update.message.text.strip().lower()
 
-    # Always send welcome + buttons if it's a new conversation style message
-    if message_text.lower() in ["hi", "hello", "hey", "good morning", "good evening", "start"]:
+    # Auto welcome for common greetings
+    if message_text in ["hi", "hello", "hey", "good morning", "good evening", "start", "help"]:
         await start(update, context)
         return
 
-    # Treat other messages as support requests
+    # Treat other messages as support
     await update.message.reply_text(
         "Thank you for your message.\n\n"
         "A human support agent will get back to you shortly. Please wait."
     )
 
-    # Notify Admin
     username = f"@{user.username}" if user.username else "No username"
     text = (
         f"💬 *New Message from User*\n\n"
         f"From: {user.full_name}\n"
         f"Username: {username}\n"
         f"User ID: `{user.id}`\n\n"
-        f"Message:\n{message_text}"
+        f"Message:\n{update.message.text}"
     )
     await context.bot.send_message(
         chat_id=ADMIN_ID,
